@@ -14,19 +14,6 @@ char showSpecificLine[100] = "linha";
 char showLinesBetween[100] = "linhas";
 char editLine[100] = "edit";
 
-char *getNewContent() {
-    int line;
-    char file[100];
-    char content[100];
-    
-    scanf("%d", &line);
-    scanf("%s", file);
-    fgets(content, 100, stdin);
-
-    char *newContent = cleanNewContent(content);
-    return newContent;
-}
-
 char *cleanNewContent(char *newContent){
     char *ptemp = newContent;
     int count = 0;
@@ -45,9 +32,23 @@ char *cleanNewContent(char *newContent){
     return newContent;
 }
 
+char *getNewContent() {
+    int line;
+    char file[100];
+    char content[100];
+    
+    scanf("%d", &line);
+    scanf("%s", file);
+    fgets(content, 100, stdin);
+
+    char *newContent = cleanNewContent(content);
+    return newContent;
+}
+
+
 int main() {
-    int socket = ConexaoRawSocket("lo");
-    char *command = rcv(socket, command, 100, 0);
+    // int socket = ConexaoRawSocket("lo");
+    // char *command = recv("lo", command, 100, 0);
     while (1) {
         char directoryPath[100];
         printf("%s ", getcwd(directoryPath, 100));

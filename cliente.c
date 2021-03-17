@@ -29,7 +29,7 @@ typedef struct {
 
 
 int main() {
-    int socket = ConexaoRawSocket("lo");
+    // int socket = ConexaoRawSocket("lo");
 
     while(1) {
         char directoryPath[100];
@@ -55,7 +55,7 @@ int main() {
             //decodifica
             //imprime resposta
 
-            send(socket, command, 100, 0);
+            // send(socket, command, 100, 0);
         }
 
         if(!strcmp(command, changeDirectoryServer)) {
