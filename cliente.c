@@ -2,8 +2,10 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <arpa/inet.h>
 #include "comandos.h"
 #include "socket.h"
 
@@ -27,17 +29,51 @@ typedef struct {
     unsigned int parity: 8;
 } kermit_protocol_t;
 
+kermit_protocol_t *defineProtocol(
+    int destination_address,
+    int source_address,
+    int type,
+    char *message,
+    int sequence
+){
+    kermit_protocol_t *kermit = (kermit_protocol_t *)calloc(1,sizeof(kermit_protocol_t));
+    kermit->start_marker = 0b01111110;
+    kermit->destination_address = destination_address;
+    kermit->source_address = source_address;
+    strcpy(kermit->data, message);
+    kermit->sequence = sequence;
+    kermit->type = type;
+    kermit->size = strlen(message);
+
+    return kermit;
+}
+
+typedef struct {
+    unsigned char command[100];
+} cliente_t;
+
+
+char command[5] = "oi";
+char device[] = "lo";
+int received_code;
 
 int main() {
-    // int socket = ConexaoRawSocket("lo");
+    int socket = ConexaoRawSocket(device);
+    printf("%d\n", socket);
+
+    kermit_protocol_t *cliente = (kermit_protocol_t *)calloc(1, sizeof(kermit_protocol_t));
+    strcpy(cliente->data, "salve");
 
     while(1) {
         char directoryPath[100];
-        char command[100];
-        printf("%s ", getcwd(directoryPath, 100));
-        scanf("%s", command);
+        // char command[100];
+        // printf("%s ", getcwd(directoryPath, 100));
+        // scanf("%s", command);
+        kermit_protocol_t *send_buffer;
+        send_buffer = defineProtocol(0b1, 0b01, 0b1, "salve", 0);
+        received_code = send(socket, send_buffer, sizeof(kermit_protocol_t), 0);
+        printf("%d\n", received_code);
 
-        
         if(!strcmp(command, changeDirectoryClient)) {
             char directory[100];
             scanf("%s", directory);
@@ -54,9 +90,9 @@ int main() {
             //recebe resposta
             //decodifica
             //imprime resposta
-
-            // send(socket, command, 100, 0);
         }
+
+        
 
         if(!strcmp(command, changeDirectoryServer)) {
             //codifica a mensagem
