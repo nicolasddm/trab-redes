@@ -18,6 +18,15 @@ char showSpecificLine[100] = "linha";
 char showLinesBetween[100] = "linhas";
 char editLine[100] = "edit";
 
+int serverAddress = 0b10;
+int clientAddress = 0b01;
+int changeDirectoryType = 0b0000;
+int listCurrentDirectoryType = 0b0001;
+int showFileContentType = 0b0010;
+int showSpecificLineType = 0b0011;
+int showLinesBetweenType = 0b0100;
+int editLineType = 0b0101;
+
 typedef struct {
     unsigned int start_marker: 8;
     unsigned int size: 4;
@@ -53,7 +62,6 @@ typedef struct {
 } cliente_t;
 
 
-char command[5] = "oi";
 char device[] = "lo";
 int received_code;
 
@@ -66,13 +74,10 @@ int main() {
 
     while(1) {
         char directoryPath[100];
-        // char command[100];
-        // printf("%s ", getcwd(directoryPath, 100));
-        // scanf("%s", command);
-        kermit_protocol_t *send_buffer;
-        send_buffer = defineProtocol(0b1, 0b01, 0b1, "salve", 0);
-        received_code = send(socket, send_buffer, sizeof(kermit_protocol_t), 0);
-        printf("%d\n", received_code);
+        char command[100];
+        printf("%s ", getcwd(directoryPath, 100));
+        scanf("%s", command);
+       
 
         if(!strcmp(command, changeDirectoryClient)) {
             char directory[100];
@@ -90,8 +95,11 @@ int main() {
             //recebe resposta
             //decodifica
             //imprime resposta
+            kermit_protocol_t *send_buffer;
+            send_buffer = defineProtocol(serverAddress, clientAddress, listCurrentDirectoryType, command, 0);
+            received_code = send(socket, send_buffer, sizeof(kermit_protocol_t), 0);
+            printf("%d\n", received_code);
         }
-
         
 
         if(!strcmp(command, changeDirectoryServer)) {
@@ -100,6 +108,10 @@ int main() {
             //recebe resposta
             //decodifica
             //imprime resposta
+            kermit_protocol_t *send_buffer;
+            send_buffer = defineProtocol(serverAddress, clientAddress, changeDirectoryType, command, 0);
+            received_code = send(socket, send_buffer, sizeof(kermit_protocol_t), 0);
+            printf("%d\n", received_code);
         }
 
         if(!strcmp(command, showFileContent)) {
@@ -108,6 +120,10 @@ int main() {
             //recebe resposta
             //decodifica
             //imprime resposta
+            kermit_protocol_t *send_buffer;
+            send_buffer = defineProtocol(serverAddress, clientAddress, showFileContentType, command, 0);
+            received_code = send(socket, send_buffer, sizeof(kermit_protocol_t), 0);
+            printf("%d\n", received_code);
         }
 
         if(!strcmp(command, showSpecificLine)) {
@@ -116,6 +132,10 @@ int main() {
             //recebe resposta
             //decodifica
             //imprime resposta
+            kermit_protocol_t *send_buffer;
+            send_buffer = defineProtocol(serverAddress, clientAddress, showSpecificLineType, command, 0);
+            received_code = send(socket, send_buffer, sizeof(kermit_protocol_t), 0);
+            printf("%d\n", received_code);
         }
 
         if(!strcmp(command, showLinesBetween)) {
@@ -124,6 +144,10 @@ int main() {
             //recebe resposta
             //decodifica
             //imprime resposta
+            kermit_protocol_t *send_buffer;
+            send_buffer = defineProtocol(serverAddress, clientAddress, showLinesBetweenType, command, 0);
+            received_code = send(socket, send_buffer, sizeof(kermit_protocol_t), 0);
+            printf("%d\n", received_code);
         }
 
         if(!strcmp(command, editLine)) {
@@ -132,6 +156,10 @@ int main() {
             //recebe resposta
             //decodifica
             //imprime resposta
+            kermit_protocol_t *send_buffer;
+            send_buffer = defineProtocol(serverAddress, clientAddress, editLineType, command, 0);
+            received_code = send(socket, send_buffer, sizeof(kermit_protocol_t), 0);
+            printf("%d\n", received_code);
         }
 
     }

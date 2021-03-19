@@ -82,14 +82,14 @@ kermit_protocol_t received_buffer;
 
 int main() {
     int socket = ConexaoRawSocket(device);
-    printf("%d\n", socket);
+    char directoryPath[100];
+    printf("%s\n", getcwd(directoryPath, 100));
+    
     while (1) {
-        char directoryPath[100];
-        // printf("%s\n", getcwd(directoryPath, 100));
+        
         //recebe mensagem
 
         receive = getMessageFromAnotherProcess(socket, &received_buffer);
-        printf("%d\n", receive);
 
         if (received_buffer.type == 0b1) {
             printf("%s\n", received_buffer.data);  
