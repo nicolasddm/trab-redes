@@ -6,25 +6,29 @@
 
 #define BUFFER_SIZE 1000
 
-void listCurrentDirectoryFiles() {
+char listCurrentDirectoryFiles(char *directoryFilesList) {
     DIR *directory;
     struct dirent *dir;
     directory = opendir(".");
+    
     if (directory) {
         while ((dir = readdir(directory)) != NULL) {
             if (dir->d_type == DT_REG) {
-                printf("%s\n", dir->d_name);
+                strcat(directoryFilesList, dir->d_name);
+                strcat(directoryFilesList, "\n");
             }
         }
         closedir(directory);
     }
+
+    return *directoryFilesList;
 }
 
 char changeDirectory(char *directory) {
     return chdir(directory); 
 }
 
-void showFileContentServer(char *file) {
+void showFileContentServer(char *file, char *fileContent) {
     FILE * fPtr;
 
     fPtr = fopen(file, "r");
@@ -37,7 +41,6 @@ void showFileContentServer(char *file) {
         exit(EXIT_FAILURE);
     }
 
-    printf("File opened successfully. Reading file contents character by character. \n\n");
 
     int count = 1;
     while (fgets(buffer, BUFFER_SIZE, fPtr) != NULL) {   
@@ -45,14 +48,19 @@ void showFileContentServer(char *file) {
 
         buffer[totalRead - 1] = buffer[totalRead - 1] == '\n' ? '\0' : buffer[totalRead - 1];
 
-        printf("%d %s\n", count, buffer);
+        char countChar[50];
+        sprintf(countChar, "%d", count);
+        strcat(fileContent, countChar);
+        strcat(fileContent, " ");
+        strcat(fileContent, buffer);
+        strcat(fileContent, "\n");
+        
         count++;
     }
-
     fclose(fPtr);
 }
 
-void showSpecificLineContentServer(char *file, int line) {
+void showSpecificLineContentServer(char *file, int line, char *fileContent) {
     FILE * fPtr;
 
     fPtr = fopen(file, "r");
@@ -65,8 +73,6 @@ void showSpecificLineContentServer(char *file, int line) {
         printf("Please check whether file exists and you have read privilege.\n");
         exit(EXIT_FAILURE);
     }
-
-    printf("File opened successfully. Reading file contents character by character. \n\n");
 
     int count = 1;
     while (fgets(buffer, BUFFER_SIZE, fPtr) != NULL) {
@@ -74,15 +80,19 @@ void showSpecificLineContentServer(char *file, int line) {
 
         buffer[totalRead - 1] = buffer[totalRead - 1] == '\n' ? '\0' : buffer[totalRead - 1];
         if (count == line) {
-            printf("%d %s\n", count, buffer);
+            char countChar[50];
+            sprintf(countChar, "%d", count);
+            strcat(fileContent, countChar);
+            strcat(fileContent, " ");
+            strcat(fileContent, buffer);
+            strcat(fileContent, "\n");
         }
         count++;
     }
-
     fclose(fPtr);
 }
 
-void showLinesContentInRangeServer(char *file, int initialLine, int finalLine) {
+void showLinesContentInRangeServer(char *file, int initialLine, int finalLine,  char *fileContent) {
     FILE * fPtr;
 
     fPtr = fopen(file, "r");
@@ -96,15 +106,18 @@ void showLinesContentInRangeServer(char *file, int initialLine, int finalLine) {
         exit(EXIT_FAILURE);
     }
 
-    printf("File opened successfully. Reading file contents character by character. \n\n");
-
     int count = 1;
     while (fgets(buffer, BUFFER_SIZE, fPtr) != NULL) {
         totalRead = strlen(buffer);
 
         buffer[totalRead - 1] = buffer[totalRead - 1] == '\n' ? '\0' : buffer[totalRead - 1];
         if ((initialLine <= count) && (count <= finalLine)) {
-            printf("%d %s\n", count, buffer);
+            char countChar[50];
+            sprintf(countChar, "%d", count);
+            strcat(fileContent, countChar);
+            strcat(fileContent, " ");
+            strcat(fileContent, buffer);
+            strcat(fileContent, "\n");
         }
         count++;
     }
@@ -115,7 +128,7 @@ void showLinesContentInRangeServer(char *file, int initialLine, int finalLine) {
 void editSpecificLineContent(char *file, int line, char *content) {
     FILE * fPtr;
     FILE * fTemp;
-    
+
     char buffer[BUFFER_SIZE];
     int count;
 
