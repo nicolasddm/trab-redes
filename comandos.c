@@ -3,10 +3,11 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #define BUFFER_SIZE 1000
 
-char listCurrentDirectoryFiles(char *directoryFilesList) {
+int listCurrentDirectoryFiles(char *directoryFilesList) {
     DIR *directory;
     struct dirent *dir;
     directory = opendir(".");
@@ -17,16 +18,22 @@ char listCurrentDirectoryFiles(char *directoryFilesList) {
             strcat(directoryFilesList, "\n");
         }
         closedir(directory);
+    } else {
+        return errno;
     }
 
-    return *directoryFilesList;
+    return 0;
 }
 
 int changeDirectory(char *directory) {
-    return chdir(directory); 
+    int errorCode = chdir(directory);
+    if (errorCode == -1) {
+        return errno;
+    }
+    return 0;
 }
 
-void showFileContentServer(char *file, char *fileContent) {
+int showFileContentServer(char *file, char *fileContent) {
     FILE * fPtr;
 
     fPtr = fopen(file, "r");
@@ -34,9 +41,10 @@ void showFileContentServer(char *file, char *fileContent) {
     int totalRead = 0;
 
     if(fPtr == NULL) {
-        printf("Unable to open file.\n");
-        printf("Please check whether file exists and you have read privilege.\n");
-        exit(EXIT_FAILURE);
+        if(errno == 2){
+            return 3;
+        }
+        return errno;
     }
 
     int count = 1;
@@ -55,20 +63,21 @@ void showFileContentServer(char *file, char *fileContent) {
         count++;
     }
     fclose(fPtr);
+    return 0;
 }
 
-void showSpecificLineContentServer(char *file, int line, char *fileContent) {
+int showSpecificLineContentServer(char *file, int line, char *fileContent) {
     FILE * fPtr;
 
     fPtr = fopen(file, "r");
     char buffer[BUFFER_SIZE];
     int totalRead = 0;
 
-    if(fPtr == NULL)
-    {
-        printf("Unable to open file.\n");
-        printf("Please check whether file exists and you have read privilege.\n");
-        exit(EXIT_FAILURE);
+    if(fPtr == NULL) {
+        if(errno == 2){
+            return 3;
+        }
+        return errno;
     }
 
     int count = 1;
@@ -87,20 +96,24 @@ void showSpecificLineContentServer(char *file, int line, char *fileContent) {
         count++;
     }
     fclose(fPtr);
+    if(line > count) {
+        return 4;
+    }
+    return 0;
 }
 
-void showLinesContentInRangeServer(char *file, int initialLine, int finalLine,  char *fileContent) {
+int showLinesContentInRangeServer(char *file, int initialLine, int finalLine,  char *fileContent) {
     FILE * fPtr;
 
     fPtr = fopen(file, "r");
     char buffer[BUFFER_SIZE];
     int totalRead = 0;
 
-    if(fPtr == NULL)
-    {
-        printf("Unable to open file.\n");
-        printf("Please check whether file exists and you have read privilege.\n");
-        exit(EXIT_FAILURE);
+    if(fPtr == NULL){
+        if(errno == 2){
+            return 3;
+        }
+        return errno;
     }
 
     int count = 1;
@@ -118,11 +131,15 @@ void showLinesContentInRangeServer(char *file, int initialLine, int finalLine,  
         }
         count++;
     }
-
+    
     fclose(fPtr);
+    if(initialLine > count) {
+        return 4;
+    }
+    return 0;
 }
 
-void editSpecificLineContent(char *file, int line, char *content) {
+int editSpecificLineContent(char *file, int line, char *content) {
     FILE * fPtr;
     FILE * fTemp;
 
@@ -133,9 +150,10 @@ void editSpecificLineContent(char *file, int line, char *content) {
     fTemp = fopen("replace.tmp", "w"); 
 
     if (fPtr == NULL || fTemp == NULL) {
-        printf("\nUnable to open file.\n");
-        printf("Please check whether file exists and you have read/write privilege.\n");
-        exit(EXIT_SUCCESS);
+        if(errno == 2){
+            return 3;
+        }
+        return errno;
     }
 
     count = 0;
@@ -147,10 +165,15 @@ void editSpecificLineContent(char *file, int line, char *content) {
         else
             fputs(buffer, fTemp);
     }
-
     fclose(fPtr);
     fclose(fTemp);
 
     remove(file);
     rename("replace.tmp", file);
+
+    if(line > count) {
+        return 4;
+    }
+
+    return 0;
 }

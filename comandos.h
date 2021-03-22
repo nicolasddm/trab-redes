@@ -1,16 +1,16 @@
 #ifndef COMANDOS_H_
 #define COMANDOS_H_
 
-char listCurrentDirectoryFiles(char *directoryFilesList);
+int listCurrentDirectoryFiles(char *directoryFilesList);
 
 int changeDirectory(char *directory);
 
-void showFileContentServer(char *file, char *fileContent);
+int showFileContentServer(char *file, char *fileContent);
 
-void showSpecificLineContentServer(char *file, int line, char *fileContent);
+int showSpecificLineContentServer(char *file, int line, char *fileContent);
 
-void showLinesContentInRangeServer(char *file, int initialLine, int finalLine, char *fileContent);
+int showLinesContentInRangeServer(char *file, int initialLine, int finalLine, char *fileContent);
 
-void editSpecificLineContent(char *file, int line, char *content);
+int editSpecificLineContent(char *file, int line, char *content);
 
 #endif
