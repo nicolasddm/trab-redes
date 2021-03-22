@@ -129,7 +129,7 @@ int main() {
             int sequence = 0;
             int received_code;
             char *message = file;
-            char newMessage[15];
+            char *newMessage = calloc(15, sizeof(char));
             int messageSize = strlen(message);
             int cuttedMessageSize = messageSize >= 15 ? 15 : messageSize;
 
@@ -206,7 +206,7 @@ int main() {
             int sequence = 0;
             int received_code;
             char *message = file;
-            char newMessage[15];
+            char *newMessage = calloc(15, sizeof(char));
             int messageSize = strlen(message);
             int cuttedMessageSize = messageSize >= 15 ? 15 : messageSize;
 
@@ -286,25 +286,6 @@ int main() {
             
             printf("Terminou transmissão\n");
             received_code = sendMessage(socket, serverAddress, clientAddress, ACKType, message, sequence);
-
-            // kermit_protocol_t *sendFile;
-            // kermit_protocol_t *sendLine;
-            // sendFile = defineProtocol(serverAddress, clientAddress, showSpecificLineType, file, 0);
-            // sendLine = defineProtocol(serverAddress, clientAddress, linesType, line, 1);
-            // received_code = send(socket, sendFile, sizeof(kermit_protocol_t), 0);
-            // received_code = send(socket, sendLine, sizeof(kermit_protocol_t), 0);
-
-            // if (received_code == sizeof(kermit_protocol_t)) {
-            //     while(1) {
-            //         receive = getMessageFromAnotherProcess(socket, &received_buffer);
-            //         receive = getMessageFromAnotherProcess(socket, &received_buffer);
-                    
-            //         if (received_buffer.type == fileContentType && received_buffer.source_address == serverAddress) {
-            //             printf("%s\n", received_buffer.data);
-            //             break;
-            //         }
-            //     }
-            // }
         }
 
         //done
@@ -321,24 +302,108 @@ int main() {
             strcat(lines, " ");
             strcat(lines, finalLine);
 
-            kermit_protocol_t *sendFile;
-            kermit_protocol_t *sendLine;
-            sendFile = defineProtocol(serverAddress, clientAddress, showLinesBetweenType, file, 0);
-            sendLine = defineProtocol(serverAddress, clientAddress, linesType, lines, 1);
-            received_code = send(socket, sendFile, sizeof(kermit_protocol_t), 0);
-            received_code = send(socket, sendLine, sizeof(kermit_protocol_t), 0);
+            int sequence = 0;
+            int received_code;
+            char *message = file;
+            char *newMessage = calloc(15, sizeof(char));
+            int messageSize = strlen(message);
+            int cuttedMessageSize = messageSize >= 15 ? 15 : messageSize;
 
-            if (received_code == sizeof(kermit_protocol_t)) {
-                while(1) {
+            do {
+                memset(newMessage, 0, 15);
+                memcpy(newMessage, message, cuttedMessageSize);
+
+                received_code = sendMessage(socket, serverAddress, clientAddress, showLinesBetweenType, newMessage, sequence);
+
+                do {
                     receive = getMessageFromAnotherProcess(socket, &received_buffer);
                     receive = getMessageFromAnotherProcess(socket, &received_buffer);
-                    
-                    if (received_buffer.type == fileContentType && received_buffer.source_address == serverAddress) {
+
+                    if(received_buffer.type == NACKType && received_buffer.source_address == serverAddress) {
+                        received_code = sendMessage(socket, serverAddress, clientAddress, showLinesBetweenType, newMessage, sequence);
+                    } else if(received_buffer.type == ErrorType) {
+                        printf("Error: ");
                         printf("%s\n", received_buffer.data);
-                        break;
                     }
+
+                } while(received_buffer.type != ACKType || received_buffer.source_address != serverAddress);
+                
+                sequence++;
+                message += 15;
+                messageSize -= 15;
+                cuttedMessageSize = messageSize >= 15 ? 15 : messageSize;
+
+            } while (messageSize >= 1);
+
+            received_code = sendMessage(socket, serverAddress, clientAddress, endTransmissionType, emptyMessage, sequence++);
+            do {
+                receive = getMessageFromAnotherProcess(socket, &received_buffer);
+                receive = getMessageFromAnotherProcess(socket, &received_buffer);
+
+                if(received_buffer.type == NACKType) {
+                    printf("NACK, reenviando\n");
+                    received_code = sendMessage(socket, serverAddress, clientAddress, endTransmissionType, emptyMessage, sequence);
+                } else if(received_buffer.type == ErrorType) {
+                    printf("Error: ");
+                    printf("%s\n", received_buffer.data);
                 }
-            }
+
+            } while(received_buffer.type != ACKType || received_buffer.source_address != serverAddress);
+
+            sequence = 0;
+            received_code = sendMessage(socket, serverAddress, clientAddress, linesType, lines, sequence);
+            do {
+                receive = getMessageFromAnotherProcess(socket, &received_buffer);
+                receive = getMessageFromAnotherProcess(socket, &received_buffer);
+
+                if(received_buffer.type == NACKType) {
+                    printf("NACK, reenviando\n");
+                    received_code = sendMessage(socket, serverAddress, clientAddress, linesType, lines, sequence);
+                } else if(received_buffer.type == ErrorType) {
+                    printf("Error: ");
+                    printf("%s\n", received_buffer.data);
+                }
+
+            } while(received_buffer.type != fileContentType || received_buffer.source_address != serverAddress);
+
+            printf("%s", received_buffer.data);
+            received_code = sendMessage(socket, serverAddress, clientAddress, ACKType, message, sequence);
+
+            do {
+                receive = getMessageFromAnotherProcess(socket, &received_buffer);
+                receive = getMessageFromAnotherProcess(socket, &received_buffer);
+
+                if (received_buffer.type == NACKType && received_buffer.source_address == serverAddress) {
+                    printf("isNack, Tentando de novo\n");
+                    received_code = sendMessage(socket, serverAddress, clientAddress, ACKType, message, sequence);
+                } else if(received_buffer.type == fileContentType && received_buffer.source_address == serverAddress) {
+                    printf("%s", received_buffer.data);
+                    received_code = sendMessage(socket, serverAddress, clientAddress, ACKType, message, sequence);
+                }
+
+            } while(received_buffer.type != endTransmissionType || received_buffer.source_address != serverAddress);
+            
+            printf("Terminou transmissão\n");
+            received_code = sendMessage(socket, serverAddress, clientAddress, ACKType, message, sequence);
+
+            // kermit_protocol_t *sendFile;
+            // kermit_protocol_t *sendLine;
+            // sendFile = defineProtocol(serverAddress, clientAddress, showLinesBetweenType, file, 0);
+            // sendLine = defineProtocol(serverAddress, clientAddress, linesType, lines, 1);
+            // received_code = send(socket, sendFile, sizeof(kermit_protocol_t), 0);
+            // received_code = send(socket, sendLine, sizeof(kermit_protocol_t), 0);
+
+            // if (received_code == sizeof(kermit_protocol_t)) {
+            //     while(1) {
+            //         receive = getMessageFromAnotherProcess(socket, &received_buffer);
+            //         receive = getMessageFromAnotherProcess(socket, &received_buffer);
+                    
+            //         if (received_buffer.type == fileContentType && received_buffer.source_address == serverAddress) {
+            //             printf("%s\n", received_buffer.data);
+            //             break;
+            //         }
+            //     }
+            // }
         }
 
         //done
