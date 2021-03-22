@@ -1,5 +1,6 @@
 #ifndef FUNCTIONS_H_
 #define FUNCTIONS_H_
+#include <time.h>
 
 char changeDirectoryServer[100] = "cd";
 char changeDirectoryClient[100] = "lcd";
@@ -27,26 +28,26 @@ int endTransmissionType = 0b1101;
 int ErrorType = 0b1111;
 
 typedef struct {
-    unsigned int start_marker: 8;
+    unsigned int startMarker: 8;
     unsigned int size: 4;
     unsigned int sequence: 4;
-    unsigned int destination_address: 2;
-    unsigned int source_address: 2;
+    unsigned int destinationAddress: 2;
+    unsigned int sourceAddress: 2;
     unsigned char data[256];
     unsigned int type: 4;
     unsigned int parity: 8;
-} kermit_protocol_t;
+} kermit_type;
 
-void calculateParity(kermit_protocol_t *buffer);
+void calculateParity(kermit_type *buffer);
 
-int checkParity(kermit_protocol_t *buffer);
+int checkParity(kermit_type *buffer);
 
-kermit_protocol_t *defineProtocol(int destination_address, int source_address, int type, char *message, int sequence);
+kermit_type *mountBuffer(int destinationAddress, int sourceAddress, int type, char *message, int sequence);
 
 void verifyTimeout(time_t startTime, time_t endTime);
 
-int getMessageFromAnotherProcess(int socket, kermit_protocol_t *received_buffer);
+int getMessage(int socket, kermit_type *bufferListened);
 
-int sendMessage(int socket, int destinationAddres, int sourceAddres, int type, char* message, int sequence);
+int sendMessage(int socket, int destinationAddres, int sourceAddress, int type, char* message, int sequence);
 
 #endif

@@ -43,9 +43,9 @@ char *getNewContent() {
 }
 
 
-int receive, received_code;
+int receive, sendedCode;
 char device[] = "lo";
-kermit_protocol_t received_buffer;
+kermit_type bufferListened;
 char *emptyMessage = "";
 
 int main() {
@@ -55,17 +55,17 @@ int main() {
 
     while (1) {
         
-        receive = getMessageFromAnotherProcess(socket, &received_buffer);
-        receive = getMessageFromAnotherProcess(socket, &received_buffer);
+        receive = getMessage(socket, &bufferListened);
+        receive = getMessage(socket, &bufferListened);
 
-        if(!checkParity(&received_buffer)) {
+        if(!checkParity(&bufferListened)) {
             char *message = "";
             int sequence = 0b0000;
-            received_code = sendMessage(socket, serverAddress, clientAddress, NACKType, message, sequence);
+            sendedCode = sendMessage(socket, serverAddress, clientAddress, NACKType, message, sequence);
         }
 
-        if (received_buffer.type == changeDirectoryType && received_buffer.source_address == clientAddress) {
-            int chdirReturn = changeDirectory(received_buffer.data);
+        if (bufferListened.type == changeDirectoryType && bufferListened.sourceAddress == clientAddress) {
+            int chdirReturn = changeDirectory(bufferListened.data);
             
             char *message = "";
             int sequence = 0b0000;
@@ -73,16 +73,16 @@ int main() {
             if (chdirReturn != 0) {
                 char errorCodeStr[4] = "";
                 sprintf(errorCodeStr, "%d\n", chdirReturn);
-                received_code = sendMessage(socket, clientAddress, serverAddress, ErrorType, errorCodeStr, sequence);
+                sendedCode = sendMessage(socket, clientAddress, serverAddress, ErrorType, errorCodeStr, sequence);
             } else {
-                received_code = sendMessage(socket, clientAddress, serverAddress, ACKType, message, sequence);
+                sendedCode = sendMessage(socket, clientAddress, serverAddress, ACKType, message, sequence);
             }
         }
 
-        if (received_buffer.type == listCurrentDirectoryType && received_buffer.source_address == clientAddress) {
+        if (bufferListened.type == listCurrentDirectoryType && bufferListened.sourceAddress == clientAddress) {
             int sequence = 0b0000;
             char *emptyMessage = "";
-            int received_code;
+            int sendedCode;
             
             char newMessage[15];
             char directoryFilesList[256] = "";
@@ -91,7 +91,7 @@ int main() {
             if (errorCode != 0) {
                 char errorCodeStr[4] = "";
                 sprintf(errorCodeStr, "%d\n", errorCode);
-                received_code = sendMessage(socket, clientAddress, serverAddress, ErrorType, errorCodeStr, sequence);
+                sendedCode = sendMessage(socket, clientAddress, serverAddress, ErrorType, errorCodeStr, sequence);
             } else {
                
                 char *message = directoryFilesList;
@@ -102,20 +102,20 @@ int main() {
                     memset(newMessage, 0, 15);
                     memcpy(newMessage, message, cuttedMessageSize);
 
-                    received_code = sendMessage(socket, clientAddress, serverAddress, listDirectoryContentType, newMessage, sequence);
+                    sendedCode = sendMessage(socket, clientAddress, serverAddress, listDirectoryContentType, newMessage, sequence);
                     time(&startTime);
                     do {
-                        receive = getMessageFromAnotherProcess(socket, &received_buffer);
-                        receive = getMessageFromAnotherProcess(socket, &received_buffer);
+                        receive = getMessage(socket, &bufferListened);
+                        receive = getMessage(socket, &bufferListened);
 
-                        if(!checkParity(&received_buffer)) {
-                            received_code = sendMessage(socket, serverAddress, clientAddress, NACKType, message, sequence);
-                        } else if(received_buffer.type == NACKType && received_buffer.source_address == clientAddress) {
-                            received_code = sendMessage(socket, clientAddress, serverAddress, listDirectoryContentType, newMessage, sequence);
+                        if(!checkParity(&bufferListened)) {
+                            sendedCode = sendMessage(socket, serverAddress, clientAddress, NACKType, message, sequence);
+                        } else if(bufferListened.type == NACKType && bufferListened.sourceAddress == clientAddress) {
+                            sendedCode = sendMessage(socket, clientAddress, serverAddress, listDirectoryContentType, newMessage, sequence);
                         }
                         verifyTimeout(startTime, endTime);
 
-                    } while(received_buffer.type != ACKType || received_buffer.source_address != clientAddress);
+                    } while(bufferListened.type != ACKType || bufferListened.sourceAddress != clientAddress);
                     
                     sequence++;
                     message += 15;
@@ -124,52 +124,52 @@ int main() {
 
                 } while (messageSize >= 1);
                 
-                received_code = sendMessage(socket, clientAddress, serverAddress, endTransmissionType, emptyMessage, sequence++);
+                sendedCode = sendMessage(socket, clientAddress, serverAddress, endTransmissionType, emptyMessage, sequence++);
                 time(&startTime);
 
                 do {
-                    receive = getMessageFromAnotherProcess(socket, &received_buffer);
-                    receive = getMessageFromAnotherProcess(socket, &received_buffer);
+                    receive = getMessage(socket, &bufferListened);
+                    receive = getMessage(socket, &bufferListened);
 
-                    if(!checkParity(&received_buffer)) {
-                        received_code = sendMessage(socket, serverAddress, clientAddress, NACKType, message, sequence);
-                    } else if(received_buffer.type == NACKType) {
+                    if(!checkParity(&bufferListened)) {
+                        sendedCode = sendMessage(socket, serverAddress, clientAddress, NACKType, message, sequence);
+                    } else if(bufferListened.type == NACKType) {
                         printf("NACK, reenviando\n");
-                        received_code = sendMessage(socket, clientAddress, serverAddress, endTransmissionType, emptyMessage, sequence);
+                        sendedCode = sendMessage(socket, clientAddress, serverAddress, endTransmissionType, emptyMessage, sequence);
                     }
                     verifyTimeout(startTime, endTime);
 
-                } while(received_buffer.type != ACKType || received_buffer.source_address != clientAddress);
+                } while(bufferListened.type != ACKType || bufferListened.sourceAddress != clientAddress);
             }
             
         }
 
-        if (received_buffer.type == showFileContentType && received_buffer.source_address == clientAddress) {
+        if (bufferListened.type == showFileContentType && bufferListened.sourceAddress == clientAddress) {
             int sequence = 0b0000;
             char *message = "";
-            int received_code;
+            int sendedCode;
             char fileName[256] = "";
-            strcat(fileName, received_buffer.data);
+            strcat(fileName, bufferListened.data);
 
             //ficar escutando o arquivo todo
-            received_code = sendMessage(socket, clientAddress, serverAddress, ACKType, message, sequence);
+            sendedCode = sendMessage(socket, clientAddress, serverAddress, ACKType, message, sequence);
             time(&startTime);
             do {
-                receive = getMessageFromAnotherProcess(socket, &received_buffer);
-                receive = getMessageFromAnotherProcess(socket, &received_buffer);
+                receive = getMessage(socket, &bufferListened);
+                receive = getMessage(socket, &bufferListened);
 
-                if(!checkParity(&received_buffer)) {
-                    received_code = sendMessage(socket, serverAddress, clientAddress, NACKType, message, sequence);
-                } else if (received_buffer.type == NACKType && received_buffer.source_address == serverAddress) {
+                if(!checkParity(&bufferListened)) {
+                    sendedCode = sendMessage(socket, serverAddress, clientAddress, NACKType, message, sequence);
+                } else if (bufferListened.type == NACKType && bufferListened.sourceAddress == serverAddress) {
                     printf("isNack, Tentando de novo\n");
-                    received_code = sendMessage(socket, clientAddress, serverAddress, NACKType, message, sequence);
-                } else if(received_buffer.type == showFileContentType && received_buffer.source_address == clientAddress) {
-                    strcat(fileName, received_buffer.data);
-                    received_code = sendMessage(socket, clientAddress, serverAddress, ACKType, message, sequence);
+                    sendedCode = sendMessage(socket, clientAddress, serverAddress, NACKType, message, sequence);
+                } else if(bufferListened.type == showFileContentType && bufferListened.sourceAddress == clientAddress) {
+                    strcat(fileName, bufferListened.data);
+                    sendedCode = sendMessage(socket, clientAddress, serverAddress, ACKType, message, sequence);
                 }
                 verifyTimeout(startTime, endTime);
 
-            } while(received_buffer.type != endTransmissionType || received_buffer.source_address != clientAddress);
+            } while(bufferListened.type != endTransmissionType || bufferListened.sourceAddress != clientAddress);
 
             //pegar o conteúdo
             char fileContent[256] = "";
@@ -177,7 +177,7 @@ int main() {
             if (errorCode != 0) {
                 char errorCodeStr[4] = "";
                 sprintf(errorCodeStr, "%d\n", errorCode);
-                received_code = sendMessage(socket, clientAddress, serverAddress, ErrorType, errorCodeStr, sequence);
+                sendedCode = sendMessage(socket, clientAddress, serverAddress, ErrorType, errorCodeStr, sequence);
             } else {
                 char *newMessage = calloc(15, sizeof(char));
                 message = fileContent;
@@ -188,20 +188,20 @@ int main() {
                 do {
                     memset(newMessage, 0, 15);
                     memcpy(newMessage, message, cuttedMessageSize);
-                    received_code = sendMessage(socket, clientAddress, serverAddress, fileContentType, newMessage, sequence);
+                    sendedCode = sendMessage(socket, clientAddress, serverAddress, fileContentType, newMessage, sequence);
                     time(&startTime);
                     do {
-                        receive = getMessageFromAnotherProcess(socket, &received_buffer);
-                        receive = getMessageFromAnotherProcess(socket, &received_buffer);
+                        receive = getMessage(socket, &bufferListened);
+                        receive = getMessage(socket, &bufferListened);
 
-                        if(!checkParity(&received_buffer)) {
-                            received_code = sendMessage(socket, serverAddress, clientAddress, NACKType, message, sequence);
-                        } else if(received_buffer.type == NACKType && received_buffer.source_address == clientAddress) {
-                            received_code = sendMessage(socket, clientAddress, serverAddress, fileContentType, newMessage, sequence);
+                        if(!checkParity(&bufferListened)) {
+                            sendedCode = sendMessage(socket, serverAddress, clientAddress, NACKType, message, sequence);
+                        } else if(bufferListened.type == NACKType && bufferListened.sourceAddress == clientAddress) {
+                            sendedCode = sendMessage(socket, clientAddress, serverAddress, fileContentType, newMessage, sequence);
                         }
                         verifyTimeout(startTime, endTime);
 
-                    } while(received_buffer.type != ACKType || received_buffer.source_address != clientAddress);
+                    } while(bufferListened.type != ACKType || bufferListened.sourceAddress != clientAddress);
                     
                     sequence++;
                     message += 15;
@@ -210,66 +210,66 @@ int main() {
 
                 } while (messageSize >= 1);
                 
-                received_code = sendMessage(socket, clientAddress, serverAddress, endTransmissionType, emptyMessage, sequence++);
+                sendedCode = sendMessage(socket, clientAddress, serverAddress, endTransmissionType, emptyMessage, sequence++);
                 time(&startTime);
                 do {
-                    receive = getMessageFromAnotherProcess(socket, &received_buffer);
-                    receive = getMessageFromAnotherProcess(socket, &received_buffer);
+                    receive = getMessage(socket, &bufferListened);
+                    receive = getMessage(socket, &bufferListened);
 
-                    if(!checkParity(&received_buffer)) {
-                        received_code = sendMessage(socket, serverAddress, clientAddress, NACKType, message, sequence);
-                    } else if(received_buffer.type == NACKType) {
+                    if(!checkParity(&bufferListened)) {
+                        sendedCode = sendMessage(socket, serverAddress, clientAddress, NACKType, message, sequence);
+                    } else if(bufferListened.type == NACKType) {
                         printf("NACK, reenviando\n");
-                        received_code = sendMessage(socket, clientAddress, serverAddress, endTransmissionType, emptyMessage, sequence);
+                        sendedCode = sendMessage(socket, clientAddress, serverAddress, endTransmissionType, emptyMessage, sequence);
                     }
                     verifyTimeout(startTime, endTime);
 
-                } while(received_buffer.type != ACKType || received_buffer.source_address != clientAddress);
+                } while(bufferListened.type != ACKType || bufferListened.sourceAddress != clientAddress);
             }      
         }
 
-        if (received_buffer.type == showSpecificLineType && received_buffer.source_address == clientAddress) {
+        if (bufferListened.type == showSpecificLineType && bufferListened.sourceAddress == clientAddress) {
             int sequence = 0b0000;
             char *message = "";
-            int received_code;
+            int sendedCode;
             int line;
             char fileName[256] = "";
-            strcat(fileName, received_buffer.data);
+            strcat(fileName, bufferListened.data);
 
             //ficar escutando o arquivo todo
-            received_code = sendMessage(socket, clientAddress, serverAddress, ACKType, message, sequence);
+            sendedCode = sendMessage(socket, clientAddress, serverAddress, ACKType, message, sequence);
             time(&startTime);
             do {
-                receive = getMessageFromAnotherProcess(socket, &received_buffer);
-                receive = getMessageFromAnotherProcess(socket, &received_buffer);
+                receive = getMessage(socket, &bufferListened);
+                receive = getMessage(socket, &bufferListened);
 
-                if(!checkParity(&received_buffer)) {
-                    received_code = sendMessage(socket, serverAddress, clientAddress, NACKType, message, sequence);
-                } else if (received_buffer.type == NACKType && received_buffer.source_address == serverAddress) {
+                if(!checkParity(&bufferListened)) {
+                    sendedCode = sendMessage(socket, serverAddress, clientAddress, NACKType, message, sequence);
+                } else if (bufferListened.type == NACKType && bufferListened.sourceAddress == serverAddress) {
                     printf("isNack, Tentando de novo\n");
-                    received_code = sendMessage(socket, clientAddress, serverAddress, NACKType, message, sequence);
-                } else if(received_buffer.type == showSpecificLineType && received_buffer.source_address == clientAddress) {
-                    strcat(fileName, received_buffer.data);
-                    received_code = sendMessage(socket, clientAddress, serverAddress, ACKType, message, sequence);
+                    sendedCode = sendMessage(socket, clientAddress, serverAddress, NACKType, message, sequence);
+                } else if(bufferListened.type == showSpecificLineType && bufferListened.sourceAddress == clientAddress) {
+                    strcat(fileName, bufferListened.data);
+                    sendedCode = sendMessage(socket, clientAddress, serverAddress, ACKType, message, sequence);
                 }
                 verifyTimeout(startTime, endTime);
 
-            } while(received_buffer.type != endTransmissionType || received_buffer.source_address != clientAddress);
+            } while(bufferListened.type != endTransmissionType || bufferListened.sourceAddress != clientAddress);
 
-            received_code = sendMessage(socket, clientAddress, serverAddress, ACKType, message, sequence);
+            sendedCode = sendMessage(socket, clientAddress, serverAddress, ACKType, message, sequence);
             time(&startTime);
             do {
-                receive = getMessageFromAnotherProcess(socket, &received_buffer);
-                receive = getMessageFromAnotherProcess(socket, &received_buffer);
+                receive = getMessage(socket, &bufferListened);
+                receive = getMessage(socket, &bufferListened);
 
-                if(!checkParity(&received_buffer)) {
-                    received_code = sendMessage(socket, serverAddress, clientAddress, NACKType, message, sequence);
-                } else if (received_buffer.type == linesType && received_buffer.source_address == clientAddress) {
-                    line = atoi(received_buffer.data);
+                if(!checkParity(&bufferListened)) {
+                    sendedCode = sendMessage(socket, serverAddress, clientAddress, NACKType, message, sequence);
+                } else if (bufferListened.type == linesType && bufferListened.sourceAddress == clientAddress) {
+                    line = atoi(bufferListened.data);
                 }
                 verifyTimeout(startTime, endTime);
 
-            } while(received_buffer.type != linesType || received_buffer.source_address != clientAddress);
+            } while(bufferListened.type != linesType || bufferListened.sourceAddress != clientAddress);
 
             
             //pegar o conteúdo
@@ -278,7 +278,7 @@ int main() {
             if (errorCode != 0) {
                 char errorCodeStr[4] = "";
                 sprintf(errorCodeStr, "%d\n", errorCode);
-                received_code = sendMessage(socket, clientAddress, serverAddress, ErrorType, errorCodeStr, sequence);
+                sendedCode = sendMessage(socket, clientAddress, serverAddress, ErrorType, errorCodeStr, sequence);
             } else {
                 
                 char *newMessage = calloc(15, sizeof(char));
@@ -289,20 +289,20 @@ int main() {
                 do {
                     memset(newMessage, 0, 15);
                     memcpy(newMessage, message, cuttedMessageSize);
-                    received_code = sendMessage(socket, clientAddress, serverAddress, fileContentType, newMessage, sequence);
+                    sendedCode = sendMessage(socket, clientAddress, serverAddress, fileContentType, newMessage, sequence);
                     time(&startTime);
                     do {
-                        receive = getMessageFromAnotherProcess(socket, &received_buffer);
-                        receive = getMessageFromAnotherProcess(socket, &received_buffer);
+                        receive = getMessage(socket, &bufferListened);
+                        receive = getMessage(socket, &bufferListened);
 
-                        if(!checkParity(&received_buffer)) {
-                            received_code = sendMessage(socket, serverAddress, clientAddress, NACKType, message, sequence);
-                        } else if(received_buffer.type == NACKType && received_buffer.source_address == clientAddress) {
-                            received_code = sendMessage(socket, clientAddress, serverAddress, fileContentType, newMessage, sequence);
+                        if(!checkParity(&bufferListened)) {
+                            sendedCode = sendMessage(socket, serverAddress, clientAddress, NACKType, message, sequence);
+                        } else if(bufferListened.type == NACKType && bufferListened.sourceAddress == clientAddress) {
+                            sendedCode = sendMessage(socket, clientAddress, serverAddress, fileContentType, newMessage, sequence);
                         }
                         verifyTimeout(startTime, endTime);
 
-                    } while(received_buffer.type != ACKType || received_buffer.source_address != clientAddress);
+                    } while(bufferListened.type != ACKType || bufferListened.sourceAddress != clientAddress);
                     
                     sequence++;
                     message += 15;
@@ -311,71 +311,71 @@ int main() {
 
                 } while (messageSize >= 1);
                 
-                received_code = sendMessage(socket, clientAddress, serverAddress, endTransmissionType, emptyMessage, sequence++);
+                sendedCode = sendMessage(socket, clientAddress, serverAddress, endTransmissionType, emptyMessage, sequence++);
                 time(&startTime);
                 do {
-                    receive = getMessageFromAnotherProcess(socket, &received_buffer);
-                    receive = getMessageFromAnotherProcess(socket, &received_buffer);
+                    receive = getMessage(socket, &bufferListened);
+                    receive = getMessage(socket, &bufferListened);
                     
-                    if(!checkParity(&received_buffer)) {
-                        received_code = sendMessage(socket, serverAddress, clientAddress, NACKType, message, sequence);
-                    } else if(received_buffer.type == NACKType) {
+                    if(!checkParity(&bufferListened)) {
+                        sendedCode = sendMessage(socket, serverAddress, clientAddress, NACKType, message, sequence);
+                    } else if(bufferListened.type == NACKType) {
                         printf("NACK, reenviando\n");
-                        received_code = sendMessage(socket, clientAddress, serverAddress, endTransmissionType, emptyMessage, sequence);
+                        sendedCode = sendMessage(socket, clientAddress, serverAddress, endTransmissionType, emptyMessage, sequence);
                     }
                     verifyTimeout(startTime, endTime);
 
-                } while(received_buffer.type != ACKType || received_buffer.source_address != clientAddress);
+                } while(bufferListened.type != ACKType || bufferListened.sourceAddress != clientAddress);
             }
         }
 
-        if (received_buffer.type == showLinesBetweenType && received_buffer.source_address == clientAddress) {
+        if (bufferListened.type == showLinesBetweenType && bufferListened.sourceAddress == clientAddress) {
             int sequence = 0b0000;
             char *message = "";
-            int received_code;
+            int sendedCode;
             int line;
             char fileName[256] = "";
-            strcat(fileName, received_buffer.data);
+            strcat(fileName, bufferListened.data);
 
             //ficar escutando o arquivo todo
-            received_code = sendMessage(socket, clientAddress, serverAddress, ACKType, message, sequence);
+            sendedCode = sendMessage(socket, clientAddress, serverAddress, ACKType, message, sequence);
             time(&startTime);
             do {
-                receive = getMessageFromAnotherProcess(socket, &received_buffer);
-                receive = getMessageFromAnotherProcess(socket, &received_buffer);
+                receive = getMessage(socket, &bufferListened);
+                receive = getMessage(socket, &bufferListened);
 
-                if(!checkParity(&received_buffer)) {
-                    received_code = sendMessage(socket, serverAddress, clientAddress, NACKType, message, sequence);
-                } else if (received_buffer.type == NACKType && received_buffer.source_address == clientAddress) {
+                if(!checkParity(&bufferListened)) {
+                    sendedCode = sendMessage(socket, serverAddress, clientAddress, NACKType, message, sequence);
+                } else if (bufferListened.type == NACKType && bufferListened.sourceAddress == clientAddress) {
                     printf("isNack, Tentando de novo\n");
-                    received_code = sendMessage(socket, clientAddress, serverAddress, NACKType, message, sequence);
-                } else if(received_buffer.type == showLinesBetweenType && received_buffer.source_address == clientAddress) {
-                    strcat(fileName, received_buffer.data);
-                    received_code = sendMessage(socket, clientAddress, serverAddress, ACKType, message, sequence);
+                    sendedCode = sendMessage(socket, clientAddress, serverAddress, NACKType, message, sequence);
+                } else if(bufferListened.type == showLinesBetweenType && bufferListened.sourceAddress == clientAddress) {
+                    strcat(fileName, bufferListened.data);
+                    sendedCode = sendMessage(socket, clientAddress, serverAddress, ACKType, message, sequence);
                 }
                 verifyTimeout(startTime, endTime);
 
-            } while(received_buffer.type != endTransmissionType || received_buffer.source_address != clientAddress);
+            } while(bufferListened.type != endTransmissionType || bufferListened.sourceAddress != clientAddress);
 
-            received_code = sendMessage(socket, clientAddress, serverAddress, ACKType, message, sequence);
+            sendedCode = sendMessage(socket, clientAddress, serverAddress, ACKType, message, sequence);
             time(&startTime);
             do {
-                receive = getMessageFromAnotherProcess(socket, &received_buffer);
-                receive = getMessageFromAnotherProcess(socket, &received_buffer);
+                receive = getMessage(socket, &bufferListened);
+                receive = getMessage(socket, &bufferListened);
 
-                if(!checkParity(&received_buffer)) {
-                    received_code = sendMessage(socket, serverAddress, clientAddress, NACKType, message, sequence);
-                } else if (received_buffer.type == linesType && received_buffer.source_address == clientAddress) {
-                    line = atoi(received_buffer.data);
+                if(!checkParity(&bufferListened)) {
+                    sendedCode = sendMessage(socket, serverAddress, clientAddress, NACKType, message, sequence);
+                } else if (bufferListened.type == linesType && bufferListened.sourceAddress == clientAddress) {
+                    line = atoi(bufferListened.data);
                 }
                 verifyTimeout(startTime, endTime);
 
-            } while(received_buffer.type != linesType || received_buffer.source_address != clientAddress);
+            } while(bufferListened.type != linesType || bufferListened.sourceAddress != clientAddress);
             
             //pegar o conteúdo
             char initialLine[100];
             char finalLine[100];
-            char *lines = strtok(received_buffer.data, " ");
+            char *lines = strtok(bufferListened.data, " ");
 
             strcpy(initialLine, lines);
             lines = strtok(NULL, " ");
@@ -386,7 +386,7 @@ int main() {
             if (errorCode != 0) {
                 char errorCodeStr[4] = "";
                 sprintf(errorCodeStr, "%d\n", errorCode);
-                received_code = sendMessage(socket, clientAddress, serverAddress, ErrorType, errorCodeStr, sequence);
+                sendedCode = sendMessage(socket, clientAddress, serverAddress, ErrorType, errorCodeStr, sequence);
             } else {
                 char *newMessage = calloc(15, sizeof(char));
                 message = fileContent;
@@ -397,21 +397,21 @@ int main() {
                 do {
                     memset(newMessage, 0, 15);
                     memcpy(newMessage, message, cuttedMessageSize);
-                    received_code = sendMessage(socket, clientAddress, serverAddress, fileContentType, newMessage, sequence);
+                    sendedCode = sendMessage(socket, clientAddress, serverAddress, fileContentType, newMessage, sequence);
                     time(&startTime);
 
                     do {
-                        receive = getMessageFromAnotherProcess(socket, &received_buffer);
-                        receive = getMessageFromAnotherProcess(socket, &received_buffer);
+                        receive = getMessage(socket, &bufferListened);
+                        receive = getMessage(socket, &bufferListened);
 
-                        if(!checkParity(&received_buffer)) {
-                            received_code = sendMessage(socket, serverAddress, clientAddress, NACKType, message, sequence);
-                        } else if(received_buffer.type == NACKType && received_buffer.source_address == clientAddress) {
-                            received_code = sendMessage(socket, clientAddress, serverAddress, fileContentType, newMessage, sequence);
+                        if(!checkParity(&bufferListened)) {
+                            sendedCode = sendMessage(socket, serverAddress, clientAddress, NACKType, message, sequence);
+                        } else if(bufferListened.type == NACKType && bufferListened.sourceAddress == clientAddress) {
+                            sendedCode = sendMessage(socket, clientAddress, serverAddress, fileContentType, newMessage, sequence);
                         }
                         verifyTimeout(startTime, endTime);
 
-                    } while(received_buffer.type != ACKType || received_buffer.source_address != clientAddress);
+                    } while(bufferListened.type != ACKType || bufferListened.sourceAddress != clientAddress);
                     
                     sequence++;
                     message += 15;
@@ -420,96 +420,96 @@ int main() {
 
                 } while (messageSize >= 1);
                 
-                received_code = sendMessage(socket, clientAddress, serverAddress, endTransmissionType, emptyMessage, sequence++);
+                sendedCode = sendMessage(socket, clientAddress, serverAddress, endTransmissionType, emptyMessage, sequence++);
                 time(&startTime);
                 do {
-                    receive = getMessageFromAnotherProcess(socket, &received_buffer);
-                    receive = getMessageFromAnotherProcess(socket, &received_buffer);
+                    receive = getMessage(socket, &bufferListened);
+                    receive = getMessage(socket, &bufferListened);
                     
-                    if(!checkParity(&received_buffer)) {
-                        received_code = sendMessage(socket, serverAddress, clientAddress, NACKType, message, sequence);
-                    } else if(received_buffer.type == NACKType) {
+                    if(!checkParity(&bufferListened)) {
+                        sendedCode = sendMessage(socket, serverAddress, clientAddress, NACKType, message, sequence);
+                    } else if(bufferListened.type == NACKType) {
                         printf("NACK, reenviando\n");
-                        received_code = sendMessage(socket, clientAddress, serverAddress, endTransmissionType, emptyMessage, sequence);
+                        sendedCode = sendMessage(socket, clientAddress, serverAddress, endTransmissionType, emptyMessage, sequence);
                     }
                     verifyTimeout(startTime, endTime);
 
-                } while(received_buffer.type != ACKType || received_buffer.source_address != clientAddress);
+                } while(bufferListened.type != ACKType || bufferListened.sourceAddress != clientAddress);
             }
 
 
         }
 
-        if (received_buffer.type == editLineType && received_buffer.source_address == clientAddress) {
+        if (bufferListened.type == editLineType && bufferListened.sourceAddress == clientAddress) {
             int sequence = 0b0000;
             char *message = "";
-            int received_code;
+            int sendedCode;
             int line;
             char fileName[256] = "";
-            strcat(fileName, received_buffer.data);
+            strcat(fileName, bufferListened.data);
 
             //ficar escutando o arquivo todo
-            received_code = sendMessage(socket, clientAddress, serverAddress, ACKType, message, sequence);
+            sendedCode = sendMessage(socket, clientAddress, serverAddress, ACKType, message, sequence);
             time(&startTime);
             do {
-                receive = getMessageFromAnotherProcess(socket, &received_buffer);
-                receive = getMessageFromAnotherProcess(socket, &received_buffer);
+                receive = getMessage(socket, &bufferListened);
+                receive = getMessage(socket, &bufferListened);
 
-                if(!checkParity(&received_buffer)) {
-                    received_code = sendMessage(socket, serverAddress, clientAddress, NACKType, message, sequence);
-                } else if (received_buffer.type == NACKType && received_buffer.source_address == serverAddress) {
+                if(!checkParity(&bufferListened)) {
+                    sendedCode = sendMessage(socket, serverAddress, clientAddress, NACKType, message, sequence);
+                } else if (bufferListened.type == NACKType && bufferListened.sourceAddress == serverAddress) {
                     printf("isNack, Tentando de novo\n");
-                    received_code = sendMessage(socket, clientAddress, serverAddress, NACKType, message, sequence);
-                } else if(received_buffer.type == editLineType && received_buffer.source_address == clientAddress) {
-                    strcat(fileName, received_buffer.data);
-                    received_code = sendMessage(socket, clientAddress, serverAddress, ACKType, message, sequence);
+                    sendedCode = sendMessage(socket, clientAddress, serverAddress, NACKType, message, sequence);
+                } else if(bufferListened.type == editLineType && bufferListened.sourceAddress == clientAddress) {
+                    strcat(fileName, bufferListened.data);
+                    sendedCode = sendMessage(socket, clientAddress, serverAddress, ACKType, message, sequence);
                 }
                 verifyTimeout(startTime, endTime);
 
-            } while(received_buffer.type != endTransmissionType || received_buffer.source_address != clientAddress);
+            } while(bufferListened.type != endTransmissionType || bufferListened.sourceAddress != clientAddress);
             
-            received_code = sendMessage(socket, clientAddress, serverAddress, ACKType, message, sequence);
+            sendedCode = sendMessage(socket, clientAddress, serverAddress, ACKType, message, sequence);
             time(&startTime);
             do {
-                receive = getMessageFromAnotherProcess(socket, &received_buffer);
-                receive = getMessageFromAnotherProcess(socket, &received_buffer);
+                receive = getMessage(socket, &bufferListened);
+                receive = getMessage(socket, &bufferListened);
 
-                if(!checkParity(&received_buffer)) {
-                    received_code = sendMessage(socket, serverAddress, clientAddress, NACKType, message, sequence);
-                } else if (received_buffer.type == linesType && received_buffer.source_address == clientAddress) {
-                    line = atoi(received_buffer.data);
+                if(!checkParity(&bufferListened)) {
+                    sendedCode = sendMessage(socket, serverAddress, clientAddress, NACKType, message, sequence);
+                } else if (bufferListened.type == linesType && bufferListened.sourceAddress == clientAddress) {
+                    line = atoi(bufferListened.data);
                 }
                 verifyTimeout(startTime, endTime);
 
-            } while(received_buffer.type != linesType || received_buffer.source_address != clientAddress);
+            } while(bufferListened.type != linesType || bufferListened.sourceAddress != clientAddress);
 
             char newContent[256] = "";
-            received_code = sendMessage(socket, clientAddress, serverAddress, ACKType, message, sequence);
+            sendedCode = sendMessage(socket, clientAddress, serverAddress, ACKType, message, sequence);
             time(&startTime);
             do {
-                receive = getMessageFromAnotherProcess(socket, &received_buffer);
-                receive = getMessageFromAnotherProcess(socket, &received_buffer);
+                receive = getMessage(socket, &bufferListened);
+                receive = getMessage(socket, &bufferListened);
 
-                if(!checkParity(&received_buffer)) {
-                    received_code = sendMessage(socket, serverAddress, clientAddress, NACKType, message, sequence);
-                } else if (received_buffer.type == NACKType && received_buffer.source_address == serverAddress) {
+                if(!checkParity(&bufferListened)) {
+                    sendedCode = sendMessage(socket, serverAddress, clientAddress, NACKType, message, sequence);
+                } else if (bufferListened.type == NACKType && bufferListened.sourceAddress == serverAddress) {
                     printf("isNack, Tentando de novo\n");
-                    received_code = sendMessage(socket, clientAddress, serverAddress, NACKType, message, sequence);
-                } else if(received_buffer.type == fileContentType && received_buffer.source_address == clientAddress) {
-                    strcat(newContent, received_buffer.data);
-                    received_code = sendMessage(socket, clientAddress, serverAddress, ACKType, message, sequence);
+                    sendedCode = sendMessage(socket, clientAddress, serverAddress, NACKType, message, sequence);
+                } else if(bufferListened.type == fileContentType && bufferListened.sourceAddress == clientAddress) {
+                    strcat(newContent, bufferListened.data);
+                    sendedCode = sendMessage(socket, clientAddress, serverAddress, ACKType, message, sequence);
                 }
                 verifyTimeout(startTime, endTime);
 
-            } while(received_buffer.type != endTransmissionType || received_buffer.source_address != clientAddress);
+            } while(bufferListened.type != endTransmissionType || bufferListened.sourceAddress != clientAddress);
 
             int errorCode = editSpecificLineContent(fileName, line, newContent);
             if (errorCode != 0) {
                 char errorCodeStr[4] = "";
                 sprintf(errorCodeStr, "%d\n", errorCode);
-                received_code = sendMessage(socket, clientAddress, serverAddress, ErrorType, errorCodeStr, sequence);
+                sendedCode = sendMessage(socket, clientAddress, serverAddress, ErrorType, errorCodeStr, sequence);
             } else {
-                received_code = sendMessage(socket, clientAddress, serverAddress, ACKType, message, sequence);
+                sendedCode = sendMessage(socket, clientAddress, serverAddress, ACKType, message, sequence);
             }
 
         }

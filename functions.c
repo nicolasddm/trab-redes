@@ -10,29 +10,18 @@
 #include "socket.h"
 #include <time.h>
 
-void verifyTimeout(time_t startTime, time_t endTime) {
-    double timeDiff;
-
-    endTime = time(NULL);
-    timeDiff = difftime(endTime, startTime);
-    if (timeDiff > 5) {
-        printf("Timeout, exiting with code\n");
-        exit(1);
-    }
-}
-
 typedef struct {
-    unsigned int start_marker: 8;
+    unsigned int startMarker: 8;
     unsigned int size: 4;
     unsigned int sequence: 4;
-    unsigned int destination_address: 2;
-    unsigned int source_address: 2;
+    unsigned int destinationAddress: 2;
+    unsigned int sourceAddress: 2;
     unsigned char data[256];
     unsigned int type: 4;
     unsigned int parity: 8;
-} kermit_protocol_t;
+} kermit_type;
 
-void calculateParity(kermit_protocol_t *buffer){
+void calculateParity(kermit_type *buffer){
     int dataSize = buffer->size;
     unsigned int parity;
     parity = buffer->sequence ^ buffer->size ^ buffer->type;
@@ -42,7 +31,7 @@ void calculateParity(kermit_protocol_t *buffer){
     buffer->parity = parity;
 }
 
-int checkParity(kermit_protocol_t *buffer){
+int checkParity(kermit_type *buffer){
     int dataSize = buffer->size;
     unsigned int parity;
     parity = buffer->sequence ^ buffer->size ^ buffer->type;
@@ -52,17 +41,17 @@ int checkParity(kermit_protocol_t *buffer){
     return(buffer->parity == parity);
 }
 
-kermit_protocol_t *defineProtocol(
-    int destination_address,
-    int source_address,
+kermit_type *mountBuffer(
+    int destinationAddress,
+    int sourceAddress,
     int type,
     char *message,
     int sequence
 ){
-    kermit_protocol_t *kermit = (kermit_protocol_t *)calloc(1,sizeof(kermit_protocol_t));
-    kermit->start_marker = 0b01111110;
-    kermit->destination_address = destination_address;
-    kermit->source_address = source_address;
+    kermit_type *kermit = (kermit_type *)calloc(1,sizeof(kermit_type));
+    kermit->startMarker = 0b01111110;
+    kermit->destinationAddress = destinationAddress;
+    kermit->sourceAddress = sourceAddress;
     strcpy(kermit->data, message);
     kermit->sequence = sequence;
     kermit->type = type;
@@ -72,29 +61,40 @@ kermit_protocol_t *defineProtocol(
     return kermit;
 }
 
-int receive, received_code;
+int receive, sendedCode;
 
-int getMessageFromAnotherProcess(int socket, kermit_protocol_t *received_buffer) {
-    int received_code;
-    received_code = recv(
+int getMessage(int socket, kermit_type *bufferListened) {
+    int sendedCode;
+    sendedCode = recv(
         socket, 
-        received_buffer,
-        sizeof(kermit_protocol_t), 
+        bufferListened,
+        sizeof(kermit_type), 
         0
     );
-    return received_code;
+    return sendedCode;
 }
 
-int sendMessage(int socket, int destinationAddres, int sourceAddres, int type, char* message, int sequence) {
-  kermit_protocol_t *send_buffer;
-  send_buffer = defineProtocol(destinationAddres, sourceAddres, type, message, sequence);
+int sendMessage(int socket, int destinationAddres, int sourceAddress, int type, char* message, int sequence) {
+  kermit_type *sendBuffer;
+  sendBuffer = mountBuffer(destinationAddres, sourceAddress, type, message, sequence);
 
-  received_code = send(socket, send_buffer, sizeof(kermit_protocol_t), 0);
-  free(send_buffer);
+  sendedCode = send(socket, sendBuffer, sizeof(kermit_type), 0);
+  free(sendBuffer);
 
-  if(received_code == -1) {
+  if(sendedCode == -1) {
     exit(EXIT_SUCCESS);
   }
 
-  return received_code;
+  return sendedCode;
+}
+
+void verifyTimeout(time_t startTime, time_t endTime) {
+    double timeDiff;
+
+    endTime = time(NULL);
+    timeDiff = difftime(endTime, startTime);
+    if (timeDiff > 5) {
+        printf("Timeout, exiting with code\n");
+        exit(1);
+    }
 }
