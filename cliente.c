@@ -374,9 +374,6 @@ int main() {
                         received_code = sendMessage(socket, serverAddress, clientAddress, NACKType, message, sequence);
                     } else if(received_buffer.type == NACKType && received_buffer.source_address == serverAddress) {
                         received_code = sendMessage(socket, serverAddress, clientAddress, showLinesBetweenType, newMessage, sequence);
-                    } else if(received_buffer.type == ErrorType) {
-                        printf("Error: ");
-                        printf("%s\n", received_buffer.data);
                     }
                     verifyTimeout(startTime, endTime);
 
@@ -400,9 +397,6 @@ int main() {
                 } else if(received_buffer.type == NACKType) {
                     printf("NACK, reenviando\n");
                     received_code = sendMessage(socket, serverAddress, clientAddress, endTransmissionType, emptyMessage, sequence);
-                } else if(received_buffer.type == ErrorType) {
-                    printf("Error: ");
-                    printf("%s\n", received_buffer.data);
                 }
                 verifyTimeout(startTime, endTime);
 
@@ -490,9 +484,6 @@ int main() {
                         received_code = sendMessage(socket, serverAddress, clientAddress, NACKType, message, sequence);
                     } else if(received_buffer.type == NACKType && received_buffer.source_address == serverAddress) {
                         received_code = sendMessage(socket, serverAddress, clientAddress, editLineType, newMessage, sequence);
-                    } else if(received_buffer.type == ErrorType) {
-                        printf("Error: ");
-                        printf("%s\n", received_buffer.data);
                     }
                     verifyTimeout(startTime, endTime);
 
@@ -516,9 +507,6 @@ int main() {
                 } else if(received_buffer.type == NACKType) {
                     printf("NACK, reenviando\n");
                     received_code = sendMessage(socket, serverAddress, clientAddress, endTransmissionType, emptyMessage, sequence);
-                } else if(received_buffer.type == ErrorType) {
-                    printf("Error: ");
-                    printf("%s\n", received_buffer.data);
                 }
                 verifyTimeout(startTime, endTime);
 
@@ -536,9 +524,6 @@ int main() {
                 } else if(received_buffer.type == NACKType) {
                     printf("NACK, reenviando\n");
                     received_code = sendMessage(socket, serverAddress, clientAddress, linesType, line, sequence);
-                } else if(received_buffer.type == ErrorType) {
-                    printf("Error: ");
-                    printf("%s\n", received_buffer.data);
                 }
                 verifyTimeout(startTime, endTime);
 
@@ -562,9 +547,6 @@ int main() {
                         received_code = sendMessage(socket, serverAddress, clientAddress, NACKType, message, sequence);
                     } else if(received_buffer.type == NACKType && received_buffer.source_address == serverAddress) {
                         received_code = sendMessage(socket, serverAddress, clientAddress, fileContentType, newMessage, sequence);
-                    } else if(received_buffer.type == ErrorType) {
-                        printf("Error: ");
-                        printf("%s\n", received_buffer.data);
                     }
                     verifyTimeout(startTime, endTime);
 
