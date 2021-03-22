@@ -206,7 +206,7 @@ int main() {
             int sequence = 0;
             int received_code;
             char *message = file;
-            char *newMessage;
+            char newMessage[15];
             int messageSize = strlen(message);
             int cuttedMessageSize = messageSize >= 15 ? 15 : messageSize;
 
