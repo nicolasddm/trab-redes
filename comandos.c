@@ -39,7 +39,6 @@ void showFileContentServer(char *file, char *fileContent) {
         exit(EXIT_FAILURE);
     }
 
-
     int count = 1;
     while (fgets(buffer, BUFFER_SIZE, fPtr) != NULL) {   
         totalRead = strlen(buffer);

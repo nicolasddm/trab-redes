@@ -8,6 +8,18 @@
 #include <arpa/inet.h>
 #include "comandos.h"
 #include "socket.h"
+#include <time.h>
+
+void verifyTimeout(time_t startTime, time_t endTime) {
+    double timeDiff;
+
+    endTime = time(NULL);
+    timeDiff = difftime(endTime, startTime);
+    if (timeDiff > 5) {
+        printf("Timeout, exiting with code\n");
+        exit(1);
+    }
+}
 
 typedef struct {
     unsigned int start_marker: 8;
@@ -19,6 +31,26 @@ typedef struct {
     unsigned int type: 4;
     unsigned int parity: 8;
 } kermit_protocol_t;
+
+void calculateParity(kermit_protocol_t *buffer){
+    int dataSize = buffer->size;
+    unsigned int parity;
+    parity = buffer->sequence ^ buffer->size ^ buffer->type;
+    for (int i = 0; i < dataSize; i++) {
+        parity = parity ^ buffer->data[i];
+    }
+    buffer->parity = parity;
+}
+
+int checkParity(kermit_protocol_t *buffer){
+    int dataSize = buffer->size;
+    unsigned int parity;
+    parity = buffer->sequence ^ buffer->size ^ buffer->type;
+    for (int i = 0; i < dataSize; i++) {
+        parity = parity ^ buffer->data[i];
+    }
+    return(buffer->parity == parity);
+}
 
 kermit_protocol_t *defineProtocol(
     int destination_address,
@@ -35,6 +67,7 @@ kermit_protocol_t *defineProtocol(
     kermit->sequence = sequence;
     kermit->type = type;
     kermit->size = strlen(message);
+    calculateParity(kermit);
 
     return kermit;
 }
@@ -55,6 +88,7 @@ int getMessageFromAnotherProcess(int socket, kermit_protocol_t *received_buffer)
 int sendMessage(int socket, int destinationAddres, int sourceAddres, int type, char* message, int sequence) {
   kermit_protocol_t *send_buffer;
   send_buffer = defineProtocol(destinationAddres, sourceAddres, type, message, sequence);
+
   received_code = send(socket, send_buffer, sizeof(kermit_protocol_t), 0);
   free(send_buffer);
 

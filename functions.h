@@ -37,7 +37,13 @@ typedef struct {
     unsigned int parity: 8;
 } kermit_protocol_t;
 
+void calculateParity(kermit_protocol_t *buffer);
+
+int checkParity(kermit_protocol_t *buffer);
+
 kermit_protocol_t *defineProtocol(int destination_address, int source_address, int type, char *message, int sequence);
+
+void verifyTimeout(time_t startTime, time_t endTime);
 
 int getMessageFromAnotherProcess(int socket, kermit_protocol_t *received_buffer);
 
