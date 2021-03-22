@@ -3,7 +3,7 @@
 
 char listCurrentDirectoryFiles(char *directoryFilesList);
 
-char changeDirectory(char *directory);
+int changeDirectory(char *directory);
 
 void showFileContentServer(char *file, char *fileContent);
 

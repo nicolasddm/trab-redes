@@ -13,10 +13,8 @@ char listCurrentDirectoryFiles(char *directoryFilesList) {
     
     if (directory) {
         while ((dir = readdir(directory)) != NULL) {
-            if (dir->d_type == DT_REG) {
-                strcat(directoryFilesList, dir->d_name);
-                strcat(directoryFilesList, "\n");
-            }
+            strcat(directoryFilesList, dir->d_name);
+            strcat(directoryFilesList, "\n");
         }
         closedir(directory);
     }
@@ -24,7 +22,7 @@ char listCurrentDirectoryFiles(char *directoryFilesList) {
     return *directoryFilesList;
 }
 
-char changeDirectory(char *directory) {
+int changeDirectory(char *directory) {
     return chdir(directory); 
 }
 
